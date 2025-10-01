@@ -2,6 +2,7 @@ import json
 import pytest
 from pathlib import Path
 from project.app import app, db
+from project.models import Post
 
 
 TEST_DB = "test.db"
@@ -80,3 +81,19 @@ def test_delete_message(client):
     rv = client.get('/delete/1')
     data = json.loads(rv.data)
     assert data["status"] == 1
+
+def test_search_with_query(client):
+    """Ensure search query returns expected posts"""
+    with app.app_context():
+        post1 = Post(title="Hello World", text="First post")
+        post2 = Post(title="Another Entry", text="Not relevant")
+        db.session.add(post1)
+        db.session.add(post2)
+        db.session.commit()
+        title1 = post1.title
+        title2 = post2.title
+
+    rv = client.get(f"/search/?query={title1}")
+    assert rv.status_code == 200
+    assert title1.encode() in rv.data
+    assert title2.encode() not in rv.data
